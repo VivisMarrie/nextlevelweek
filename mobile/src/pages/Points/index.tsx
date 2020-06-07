@@ -2,25 +2,42 @@ import React, {useState, useEffect} from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert } from "react-native";
 import Constants from "expo-constants";
 import { Feather as Icon } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import MapView, { Marker } from "react-native-maps";
 import { SvgUri } from "react-native-svg";
-import * as Location from 'expo-location'
+import * as Location from 'expo-location';
 import api from '../../services/api';
+
+
+interface Point {
+  id: number;
+  name: string;
+  image: string;
+  latitude: number;
+  longitude: number;
+};
 
 interface Item {
   id: number;
   name: string;
   image_url: string;
-}
+};
 
-const Points = () => {
+interface Params {
+  uf: string;
+  city: string;
+};
+
+const Points = () => { 
+
   const [items, setItems] = useState<Item[]>([]);  
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [initialPosition, setInitialPosition] = useState<[number, number]>([0,0]);
-  const [initialPosition, setInitialPosition] = useState<[number, number]>([0,0]);
+  const [points, setPoints] = useState<Point[]>([]);
 
   const navigation = useNavigation();
+  const route = useRoute();
+  const routeParams = route.params as Params;
 
   useEffect(() => {
     async function loadPosition(){
@@ -41,6 +58,18 @@ const Points = () => {
   }, []);
 
   useEffect(() => {
+    api.get('points', {
+      params: {
+        city: routeParams.city,
+        uf: routeParams.uf,
+        items: selectedItems
+      }
+    }).then( response => {
+      setPoints(response.data);
+    }    );
+  }, [selectedItems]);
+
+  useEffect(() => {
     api.get('items').then(response => {
       setItems(response.data);
     });
@@ -59,14 +88,15 @@ const Points = () => {
   function handleBack() {
     navigation.goBack();
   }
-  function handleToDetail() {
-    navigation.navigate("Detail");
+
+  function handleToDetail(id: number) {
+    navigation.navigate("Detail", { point_id: id});
   }
 
   return (
     <>
       <View style={styles.container}>
-        <TouchableOpacity onPress={handleBack}>
+      <TouchableOpacity onPress={handleBack}>
           <Icon name="arrow-left" size={20} color="#34cb79" />
         </TouchableOpacity>
 
@@ -85,42 +115,38 @@ const Points = () => {
               latitudeDelta: 0.014,
             }}
           >
-            <Marker
-              style={styles.mapMarker}
-              onPress={handleToDetail}
-              coordinate={{ latitude: -27.2092052, longitude: -14.640192 }}
-            >
-              <View style={styles.mapMarkerContainer}>
-                <Image
-                  style={styles.mapMarkerImage}
-                  source={{
-                    uri:
-                      "https://www.iconexperience.com/_img/v_collection_png/256x256/shadow/market_stand.png",
-                  }}
-                />
-                <Text style={styles.mapMarkerTitle}>Mercado</Text>
-              </View>
-            </Marker>
+            {points.map(point => (
+                    <Marker key={String(point.id)}
+                    style={styles.mapMarker}
+                    onPress={() => handleToDetail(point.id)}
+                    coordinate={{ latitude: point.latitude, longitude: point.longitude }}
+                    >
+                    <View style={styles.mapMarkerContainer}>
+                      <Image
+                        style={styles.mapMarkerImage}
+                        source={{ uri: point.image }}
+                      />
+                      <Text style={styles.mapMarkerTitle}>{point.name}</Text>
+                    </View>
+                  </Marker>
+            )            )
+            }
           </MapView>) }
         </View>
       </View>
       <View style={styles.itemsContainer}>
-        <ScrollView
+      <ScrollView
           horizontal
           contentContainerStyle={{ paddingHorizontal: 20 }}
           showsHorizontalScrollIndicator={false}
         >
         {items.map(item =>(
-          <TouchableOpacity key={String(item.id)} 
-          style={[styles.item, 
+          <TouchableOpacity key={String(item.id)} style={[styles.item, 
             selectedItems.includes(item.id) ? styles.selectedItem : {}]} 
-          onPress={() => handleSelectItem(item.id)} activeOpacity={0.6}
+          onPress={() => handleSelectItem(item.id)} 
+          activeOpacity={0.6}
           >
-            <SvgUri
-              width={42}
-              height={42}
-              uri={item.image_url}
-            />
+            <SvgUri width={42} height={42} uri={item.image_url} />
             <Text style={styles.itemTitle}>{item.name}</Text>
           </TouchableOpacity>       
         )
@@ -131,6 +157,8 @@ const Points = () => {
     </>
   );
 };
+
+export default Points;
 
 const styles = StyleSheet.create({
   container: {
@@ -228,5 +256,3 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 });
-
-export default Points;

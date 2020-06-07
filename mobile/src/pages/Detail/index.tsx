@@ -1,13 +1,54 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image, SafeAreaView } from "react-native";
+import React, {useEffect, useState} from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Image, SafeAreaView, Linking } from "react-native";
 import { Feather as Icon, FontAwesome } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import MapView, { Marker } from "react-native-maps";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { SvgUri } from "react-native-svg";
 import { RectButton } from 'react-native-gesture-handler';
+import api from '../../services/api';
+import * as MailComposer from 'expo-mail-composer';
+
+interface Params {
+  point_id: number;
+}
+
+interface Data {
+  point: {
+    name: string;
+    image: string;
+    email: string;
+    whats: number
+    city: string;
+    uf: string;
+  },
+  items: {
+    title: string;
+  }[];
+}
 
 const Detail = () => {
+  const [data, setData] = useState<Data>({} as Data);
+
   const navigation = useNavigation();
+  const route = useRoute();
+  const routeParams = route.params as Params;
+
+  useEffect(() => {
+    api.get(`points/${routeParams.point_id}`).then(response => {
+      setData(response.data);
+    });
+  }, []);
+
+function handleMail(){
+  MailComposer.composeAsync({
+    subject: 'Coleta de resíduos',
+    recipients: [data.point.email],
+  });
+}
+
+function handleWhats() {
+  Linking.openURL(`whatsapp://send?phone=${data.point.whats}&text=Tenho interesse sobre coleta de resíduos.`);
+}
+
   function handleBack() {
     navigation.goBack();
   }
@@ -15,6 +56,9 @@ const Detail = () => {
     navigation.navigate("Detail");
   }
 
+  if(!data.point){
+    return null;
+  }
   return (
     <SafeAreaView style={{flex: 1}}>
       <View style={styles.container}>
@@ -25,29 +69,28 @@ const Detail = () => {
         <Image
                   style={styles.pointImage}
                   source={{
-                    uri:
-                      "https://www.iconexperience.com/_img/v_collection_png/256x256/shadow/market_stand.png",
+                    uri: data.point.image
                   }}
                 />
                 
-        <Text style={styles.pointName}>Mercado</Text>
+        <Text style={styles.pointName}>{data.point.name}</Text>
         <Text style={styles.pointItems}>
-          Lampadas, óleo de cozinha
+                {data.items.map(item => item.title).join(', ')}
           </Text>
         <View style={styles.address}>
           <Text style={styles.addressTitle}>Endereço</Text>
-          <Text style={styles.addressContent}>Rua SP</Text> 
+          <Text style={styles.addressContent}>{data.point.city}, {data.point.uf}</Text> 
         </View>
         
         <View style={styles.footer}>
-                    <RectButton style={styles.button} >
-                    <FontAwesome name='whatsapp' size={20} color="#fff"/>
-                    <Text style={styles.buttonText} >Whatsapp</Text>
-                    </RectButton>
-                    <RectButton style={styles.button} >
-                    <Icon name='mail' size={20} color="#fff"/>
-                    <Text style={styles.buttonText} >Email</Text>
-                    </RectButton>
+              <RectButton style={styles.button} onPress={handleWhats}>
+              <FontAwesome name='whatsapp' size={20} color="#fff"/>
+              <Text style={styles.buttonText} >Whatsapp</Text>
+              </RectButton>
+              <RectButton style={styles.button} onPress={handleMail}>
+              <Icon name='mail' size={20} color="#fff"/>
+              <Text style={styles.buttonText} >Email</Text>
+              </RectButton>
         </View>
       </View>
   
