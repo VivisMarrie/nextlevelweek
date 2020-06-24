@@ -13,6 +13,7 @@ interface Point {
   id: number;
   name: string;
   image: string;
+  image_url: string;
   latitude: number;
   longitude: number;
 };
@@ -64,9 +65,9 @@ const Points = () => {
         uf: routeParams.uf,
         items: selectedItems
       }
-    }).then( response => {
-      setPoints(response.data);
-    }    );
+    }).then( response =>   
+      setPoints(response.data)
+    );
   }, [selectedItems]);
 
   useEffect(() => {
@@ -115,7 +116,7 @@ const Points = () => {
               latitudeDelta: 0.014,
             }}
           >
-            {points.map(point => (
+            {points.map(point => (          
                     <Marker key={String(point.id)}
                     style={styles.mapMarker}
                     onPress={() => handleToDetail(point.id)}
@@ -124,12 +125,12 @@ const Points = () => {
                     <View style={styles.mapMarkerContainer}>
                       <Image
                         style={styles.mapMarkerImage}
-                        source={{ uri: point.image }}
+                        source={{ uri: point.image_url }}
                       />
                       <Text style={styles.mapMarkerTitle}>{point.name}</Text>
                     </View>
-                  </Marker>
-            )            )
+                  </Marker>)
+                      )
             }
           </MapView>) }
         </View>

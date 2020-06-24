@@ -13,9 +13,7 @@ const users = [
 
 app.get('/users', (request, response) => {
     const search = String(request.query.search);
-    console.log(search !== undefined);
     const filtered = search !== undefined ? users.filter(user => user.includes(search)) : users;    
-    console.log(filtered);
     return response.json(filtered);
 });
 
@@ -27,7 +25,6 @@ app.get('/users/:id', (request, response) => {
 
 
 app.post('/users', (request, response) => {
-    console.log(request.body);
     return response.json(request.body);
 });
 
